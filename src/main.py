@@ -11,7 +11,51 @@ from datetime import date
 import time
 import random
 
-def save_result(search_keywords: str):
+class FinishRetrieval(Exception):
+    """Flag for retrieval ending
+
+    Args:
+        Exception: When the retrieval finishs, program should raise this flag.
+    """
+    pass
+
+def retrieve_response(parsed_search_words: str, page_number: int) -> str:
+    try:
+        response = requests.get(
+                f"https://std.samr.gov.cn/gb/search/gbQueryPage?searchText={parsed_search_words}&ics=&state=&ISSUE_DATE=&sortOrder=asc&pageSize=50&pageNumber={page_number}", 
+                verify=False
+                )
+    except ConnectionError:
+        Logger.error("Failed to connect to host server.")
+                
+    response_parsed = json.loads(response.text)
+
+    if len(response_parsed["rows"]) == 0: # 0 length return result means finish retrieval
+        Logger.info("No more response, finish retrieval.")
+        raise FinishRetrieval
+
+    return response_parsed
+
+def format_response(response_parsed: dict) -> dict:
+    response_formated = []
+    for row in response_parsed["rows"]:
+        row_formated = {
+            "DB ID": row["id"],
+            "Title": row["C_C_NAME"].replace("<sacinfo>", "").replace("</sacinfo>", "").strip(),
+            "ID": row["C_STD_CODE"],
+            "Enforcement": row["STD_NATURE"],
+            "Enforce Date": date.fromisoformat(row["ACT_DATE"]),
+            "Status": row["STATE"],
+            "Issue Date": date.fromisoformat(row["ISSUE_DATE"]),
+            "Project ID": row["PROJECT_ID"],
+            "URL": f"https://std.samr.gov.cn/gb/search/gbDetailed?id={row['id']}"
+        }
+        response_formated.append(row_formated)
+
+    return response_formated
+
+
+def save_result(data: dict, search_keywords: str):
     # Formating results to Data Scientist's favourite
     schema = {
         "DB ID": str,
@@ -47,55 +91,40 @@ def main():
 
     for page_number in range(1, 1500): # 1500 is not a random number. There are in total 68429 stanards, the default page size is 50 per page.
         try:
+
             try:
-                response = requests.get(f"https://std.samr.gov.cn/gb/search/gbQueryPage?searchText={search_keywords_url_safe}&ics=&state=&ISSUE_DATE=&sortOrder=asc&pageSize=50&pageNumber={page_number}", verify=False)
-            except ConnectionError:
-                Logger.error("Failed to connect to host server.")
-                
-            response_parsed = json.loads(response.text)
-            if len(response_parsed["rows"]) == 0: # 0 length return result means finish retrieval
-                Logger.info("No more response, finish retrieval.")
+                response_parsed = retrieve_response(search_keywords_url_safe, page_number)
+            except FinishRetrieval:
                 break
+            
+            # Format response to make it look nice
+            response_formated = format_response(response_parsed)
+
+            # Compose JSON
+            data.extend(response_formated)
+
+            # Save file in the middle
+            if page_number % 10 == 9:
+                if Config.config["search keywords"]:
+                    save_result(data, Config.config["search keywords"])
+                else:
+                    save_result(data, "all")
             
             # Time to sleep
             time_to_sleep = 1 + random.randrange(-500, 500) / 1000
             time.sleep(time_to_sleep) # Radom sleep to avoid detection
             Logger.debug(f"Sleep for {time_to_sleep}")
 
+            # Cosmatic logs
             if page_number == 20:
                 Logger.warning("Large page number!")
             
             if page_number == 50:
                 Logger.warning("Very large page number!")
-            
-            response_formated = []
-            for row in response_parsed["rows"]:
-                row_formated = {
-                    "DB ID": row["id"],
-                    "Title": row["C_C_NAME"].replace("<sacinfo>", "").replace("</sacinfo>", "").strip(),
-                    "ID": row["C_STD_CODE"],
-                    "Enforcement": row["STD_NATURE"],
-                    "Enforce Date": date.fromisoformat(row["ACT_DATE"]),
-                    "Status": row["STATE"],
-                    "Issue Date": date.fromisoformat(row["ISSUE_DATE"]),
-                    "Project ID": row["PROJECT_ID"],
-                    "URL": f"https://std.samr.gov.cn/gb/search/gbDetailed?id={row['id']}"
-                }
-                response_formated.append(row_formated)
-
-            # Save file in the middle
-            if page_number % 10 == 9:
-                if Config.config["search keywords"]:
-                    save_result(Config.config["search keywords"])
-                else:
-                    save_result("all")
 
         except KeyboardInterrupt:
             Logger.warning("Keyboard interrupt detected, quit and saving the file.")
             break
-
-        # Compose JSON
-        data.extend(response_formated)
 
     # Save file
     if Config.config["search keywords"]:
