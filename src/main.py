@@ -58,17 +58,32 @@ def retrieve_response(parsed_search_words: str, page_number: int) -> str:
 def format_response(response_parsed: dict) -> dict:
     response_formated = []
     for row in response_parsed["rows"]:
-        row_formated = {
-            "DB ID": row["id"],
-            "Title": row["C_C_NAME"].replace("<sacinfo>", "").replace("</sacinfo>", "").strip(),
-            "ID": row["C_STD_CODE"],
-            "Enforcement": row["STD_NATURE"],
-            "Enforce Date": date.fromisoformat(row["ACT_DATE"]),
-            "Status": row["STATE"],
-            "Issue Date": date.fromisoformat(row["ISSUE_DATE"]),
-            "Project ID": row["PROJECT_ID"],
-            "URL": f"https://std.samr.gov.cn/gb/search/gbDetailed?id={row['id']}"
-        }
+        try:
+            row_formated = {
+                "DB ID": row["id"],
+                "Title": row["C_C_NAME"].replace("<sacinfo>", "").replace("</sacinfo>", "").strip(),
+                "ID": row["C_STD_CODE"],
+                "Enforcement": row["STD_NATURE"],
+                "Enforce Date": date.fromisoformat(row["ACT_DATE"]),
+                "Status": row["STATE"],
+                "Issue Date": date.fromisoformat(row["ISSUE_DATE"]),
+                "Project ID": row["PROJECT_ID"],
+                "URL": f"https://std.samr.gov.cn/gb/search/gbDetailed?id={row['id']}"
+            }
+        except KeyError:
+            Logger.warning(f"Key missing for response, insert default values instead {json.dumps(response_parsed['rows'], indent=2)}")
+            row_formated = {
+                "DB ID": row["id"] if "id" in row else "",
+                "Title": row["C_C_NAME"].replace("<sacinfo>", "").replace("</sacinfo>", "").strip() if "C_C_NAME" in row else "",
+                "ID": row["C_STD_CODE"] if "C_STD_CODE" in row else "",
+                "Enforcement": row["STD_NATURE"] if "STD_NATURE" in row else "",
+                "Enforce Date": date.fromisoformat(row["ACT_DATE"]) if "ACT_DATE" in row else date.fromisoformat("1970-01-01"),
+                "Status": row["STATE"] if "STATE" in row else "" ,
+                "Issue Date": date.fromisoformat(row["ISSUE_DATE"]) if "ISSUE_DATE" in row else date.fromisoformat("1970-01-01"),
+                "Project ID": row["PROJECT_ID"] if "PROJECT_ID" in row else "",
+                "URL": f"https://std.samr.gov.cn/gb/search/gbDetailed?id={row['id']}" if "id" in row else ""
+            }
+
         response_formated.append(row_formated)
 
     return response_formated
@@ -142,7 +157,7 @@ def main():
                     save_result(data, "all")
             
             # Time to sleep
-            time_to_sleep = 1 + random.randrange(-500, 500) / 1000
+            time_to_sleep = random.randrange(2, 8192) / 8192
             time.sleep(time_to_sleep) # Radom sleep to avoid detection
             Logger.debug(f"Sleep for {time_to_sleep}")
 
@@ -159,9 +174,9 @@ def main():
 
     # Save file
     if Config.config["search keywords"]:
-        save_result(Config.config["search keywords"])
+        save_result(data, Config.config["search keywords"])
     else:
-        save_result("all")
+        save_result(data, "all")
 
 if __name__ == "__main__":
     main()
