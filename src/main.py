@@ -19,6 +19,25 @@ class FinishRetrieval(Exception):
     """
     pass
 
+class RetryCounter:
+
+    threshold = 5
+    _counter = 0
+
+    @staticmethod
+    def count():
+        RetryCounter._counter += 1
+        Logger.warning(f"Failed to retrieval for {RetryCounter._counter} time")
+
+    @staticmethod
+    def reset():
+        RetryCounter._count = 0
+
+    @staticmethod
+    def shouldContinue():
+        return _counter <= threshold
+
+
 def retrieve_response(parsed_search_words: str, page_number: int) -> str:
     try:
         response = requests.get(
@@ -94,9 +113,21 @@ def main():
 
             try:
                 response_parsed = retrieve_response(search_keywords_url_safe, page_number)
+                RetryCounter.reset()
+
             except FinishRetrieval:
                 break
-            
+
+            except ConnectionError:
+                RetryCounter.count()
+                if RetryCounter.shouldContinue():
+                    page_number -= 1
+                    continue
+                else:
+                    Logger.error(f"Failed to retrieval at page number {page_number}, threshold exceeded.")
+                    RetryCounter.reset()
+                    continue
+                    
             # Format response to make it look nice
             response_formated = format_response(response_parsed)
 
