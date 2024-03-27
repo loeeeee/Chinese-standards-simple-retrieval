@@ -1,3 +1,4 @@
-developer mode: FALSE
-search keywords: ""
-output format: csv
+developer mode: FALSE           # Change this in config file will force the script use example config as the config file
+search keywords: ""             # Search keyword when performing retrieval, valid for retrieving both standards and plans
+standards or plans: "standards" # What to retrieval
+output format: csv              # Output format: csv, that is it.
