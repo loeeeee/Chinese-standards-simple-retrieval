@@ -1,6 +1,7 @@
 import yaml
 import json
 import os
+import sys
 from logger import Logger
 
 class Config:
@@ -31,6 +32,9 @@ class Config:
             yaml.safe_dump(config, f)
 
         Logger.info("Duplicate config successfully.")
+
+        Logger.info("First time starting script, please modify config.yaml to the requirements.")
+        sys.exit() # Exit script
 
     # Check config
     if not config:
