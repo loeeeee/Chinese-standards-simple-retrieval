@@ -135,19 +135,8 @@ def format_response_plans(response_parsed: dict) -> dict:
 
 
 def save_result(data: dict, search_keywords: str, standards_or_plans: Literal["standards", "plans"] ):
-    # Formating results to Data Scientist's favourite
-    # schema = {
-    #     "DB ID": str,
-    #     "Title": str,
-    #     "ID": str,
-    #     "Enforcement": str,
-    #     "Enforce Date": pl.Date,
-    #     "Status": str,
-    #     "Issue Date": pl.Date,
-    #     "Project ID": pl.Int64,
-    #     "URL": str,
-    # }
-    df = pl.DataFrame(data) # , schema=schema)
+    # DATA_FRAMEEEEEEEEEEEEEEE
+    df = pl.DataFrame(data)
 
     # Saving results
     SAVE_DIR = os.path.join(Config.config["package root path"], "result", f"{search_keywords.replace(' ', '_')}_{standards_or_plans}")
