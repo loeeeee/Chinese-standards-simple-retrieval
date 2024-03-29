@@ -45,6 +45,12 @@ class RetryCounter:
         return _counter <= threshold
 
 
+def name_cleaner(raw: str) -> str:
+    result = helper.remove_duplicate_space(raw)
+
+    result = result.replace(":", "：")
+    return result
+
 def retrieve_response(parsed_search_words: str, page_number: int, standards_or_plans: Literal["standards", "plans"]) -> str:
     try:
         if standards_or_plans.lower() == "standards":
@@ -77,7 +83,7 @@ def format_response_standards(response_parsed: dict) -> dict:
         try:
             row_formated = {
                 "DB ID": row["id"],
-                "Title": row["C_C_NAME"].replace("<sacinfo>", "").replace("</sacinfo>", "").strip(),
+                "Title": name_cleaner(row["C_C_NAME"].replace("<sacinfo>", "").replace("</sacinfo>", "").strip()),
                 "ID": row["C_STD_CODE"],
                 "Enforcement": row["STD_NATURE"],
                 "Enforce Date": date.fromisoformat(row["ACT_DATE"]),
@@ -90,7 +96,7 @@ def format_response_standards(response_parsed: dict) -> dict:
             Logger.warning(f"Key missing for response, insert default values instead {json.dumps(response_parsed['rows'], indent=2)}")
             row_formated = {
                 "DB ID": row["id"] if "id" in row else "",
-                "Title": row["C_C_NAME"].replace("<sacinfo>", "").replace("</sacinfo>", "").strip() if "C_C_NAME" in row else "",
+                "Title": name_cleaner(row["C_C_NAME"].replace("<sacinfo>", "").replace("</sacinfo>", "").strip()) if "C_C_NAME" in row else "",
                 "ID": row["C_STD_CODE"] if "C_STD_CODE" in row else "",
                 "Enforcement": row["STD_NATURE"] if "STD_NATURE" in row else "",
                 "Enforce Date": date.fromisoformat(row["ACT_DATE"]) if "ACT_DATE" in row else date.fromisoformat("1949-10-01"),
@@ -110,7 +116,7 @@ def format_response_plans(response_parsed: dict) -> dict:
         try:
             row_formated = {
                 "DB ID": row["id"],
-                "Title": row["C_C_NAME"].replace("<sacinfo>", "").replace("</sacinfo>", "").strip(),
+                "Title": name_cleaner(row["C_C_NAME"].replace("<sacinfo>", "").replace("</sacinfo>", "").strip()),
                 "ID": row["C_PLAN_CODE"],
                 "Status": row["CURRENT_LINK"],
                 "Propose Date": date.fromisoformat(row["SEND_DATE"]),
@@ -121,7 +127,7 @@ def format_response_plans(response_parsed: dict) -> dict:
             Logger.warning(f"Key missing for response, insert default values instead {json.dumps(response_parsed['rows'], indent=2)}")
             row_formated = {
                 "DB ID": row["id"] if "id" in row else "",
-                "Title": row["C_C_NAME"].replace("<sacinfo>", "").replace("</sacinfo>", "").strip() if "C_C_NAME" in row else "",
+                "Title": name_cleaner(row["C_C_NAME"].replace("<sacinfo>", "").replace("</sacinfo>", "").strip()) if "C_C_NAME" in row else "",
                 "ID": row["C_PLAN_CODE"] if "C_PLAN_CODE" in row else "",
                 "Status": row["CURRENT_LINK"] if "CURRENT_LINK" in row else "" ,
                 "Propose Date": date.fromisoformat(row["SEND_DATE"]) if "SEND_DATE" in row else date.fromisoformat("1949-10-01"),
