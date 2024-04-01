@@ -4,11 +4,27 @@ import os
 import sys
 from logger import Logger
 
-class Config:
-    
-    main_file_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+from argparse import ArgumentParser
 
-    file_path = f"{main_file_path}/config.yaml"
+class Config:
+
+    # Dynamic path
+    main_file_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    current_working_dir = os.getcwd()
+
+    # Add CLI
+    arguments = ArgumentParser()
+
+    parser = ArgumentParser()
+    parser.add_argument("--config", type=str, default="", help="config file overwrites commandline arguments. if not present, a new one will be created")
+    try:
+        args = parser.parse_args()
+    except:
+        parser.print_help()
+        sys.exit(0)
+
+    # Dynamic path
+    file_path = f"{current_working_dir}/{args.config}" if args.config else f"{main_file_path}/config.yaml"
     example_file_path = f"{main_file_path}/example_config.yaml"
 
     config = None

@@ -5,14 +5,18 @@ import json
 import helper
 from logger import Logger
 from config import Config
-import requests
-import polars as pl
 from datetime import date
 import time
 import random
 from typing import Literal
+from argparse import ArgumentParser
+
+# Foreign dependency
+import requests
+import polars as pl
 
 
+# Helper
 class FinishRetrieval(Exception):
     """Flag for retrieval ending
 
@@ -46,10 +50,20 @@ class RetryCounter:
 
 
 def name_cleaner(raw: str) -> str:
+    """Return cleaned name for standards or plans
+
+    Args:
+        raw (str): raw name from the scraping
+
+    Returns:
+        str: cleaned name
+    """
     result = helper.remove_duplicate_space(raw)
 
     result = result.replace(":", "：")
     return result
+
+# Subprocess
 
 def retrieve_response(parsed_search_words: str, page_number: int, standards_or_plans: Literal["standards", "plans"]) -> str:
     try:
@@ -155,6 +169,7 @@ def save_result(data: dict, search_keywords: str, standards_or_plans: Literal["s
     return
 
 def main():
+    # Prelude
     RESULT_PATH = os.path.join(Config.config["package root path"], "result")
     helper.create_folder_if_not_exists(RESULT_PATH)
 
