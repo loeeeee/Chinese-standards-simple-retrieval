@@ -1,11 +1,17 @@
 import os
 import datetime
+import helper
 
 class Logger:
     
     main_file_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     file_name = f"{main_file_path}/log/{datetime.date.today()}.log"
 
+    # Checking if log folder exists. If not, create a new one.abs
+    folder_name = f"{main_file_path}/log/"
+    if not os.path.isfile(folder_name) and not os.path.isdir(folder_name):
+        helper.create_folder_if_not_exists(folder_name)
+        
     # Checking if log file exists. If not, create a new one.
     if not os.path.isfile(file_name) and not os.path.isdir(file_name):
         with open(file_name, "w", encoding="utf-8") as f:
