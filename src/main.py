@@ -9,7 +9,6 @@ from datetime import date
 import time
 import random
 from typing import Literal
-from argparse import ArgumentParser
 
 # Foreign dependency
 import requests

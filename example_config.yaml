@@ -2,3 +2,4 @@ developer mode: FALSE           # Change this in config file will force the scri
 search keywords: ""             # Search keyword when performing retrieval, valid for retrieving both standards and plans
 standards or plans: "standards" # What to retrieval
 output format: csv              # Output format: csv, that is it.
+incremental or full: "full"     # (TODO) Scrape all the records or only scrape the new ones. The new ones does not mean there is no duplicate with last retrieval. It only means that it will stop when there is overlapping records. Doing so is possible beacuase the Chinese standards website sort the standards in commit order in database.
