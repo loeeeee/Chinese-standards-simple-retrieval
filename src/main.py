@@ -95,7 +95,7 @@ def format_response_standards(response_parsed: dict) -> dict:
     for row in response_parsed["rows"]:
         try:
             row_formated = {
-                "DB ID": row["id"],
+                "Website ID": row["id"],
                 "Title": name_cleaner(row["C_C_NAME"].replace("<sacinfo>", "").replace("</sacinfo>", "").strip()),
                 "ID": row["C_STD_CODE"],
                 "Enforcement": row["STD_NATURE"],
@@ -108,7 +108,7 @@ def format_response_standards(response_parsed: dict) -> dict:
         except KeyError:
             Logger.warning(f"Key missing for response, insert default values instead {json.dumps(response_parsed['rows'], indent=2)}")
             row_formated = {
-                "DB ID": row["id"] if "id" in row else "",
+                "Website ID": row["id"] if "id" in row else "",
                 "Title": name_cleaner(row["C_C_NAME"].replace("<sacinfo>", "").replace("</sacinfo>", "").strip()) if "C_C_NAME" in row else "",
                 "ID": row["C_STD_CODE"] if "C_STD_CODE" in row else "",
                 "Enforcement": row["STD_NATURE"] if "STD_NATURE" in row else "",
@@ -128,7 +128,7 @@ def format_response_plans(response_parsed: dict) -> dict:
     for row in response_parsed["rows"]:
         try:
             row_formated = {
-                "DB ID": row["id"],
+                "Website ID": row["id"],
                 "Title": name_cleaner(row["C_C_NAME"].replace("<sacinfo>", "").replace("</sacinfo>", "").strip()),
                 "ID": row["C_PLAN_CODE"],
                 "Status": row["CURRENT_LINK"],
@@ -139,7 +139,7 @@ def format_response_plans(response_parsed: dict) -> dict:
         except KeyError:
             Logger.warning(f"Key missing for response, insert default values instead {json.dumps(response_parsed['rows'], indent=2)}")
             row_formated = {
-                "DB ID": row["id"] if "id" in row else "",
+                "Website ID": row["id"] if "id" in row else "",
                 "Title": name_cleaner(row["C_C_NAME"].replace("<sacinfo>", "").replace("</sacinfo>", "").strip()) if "C_C_NAME" in row else "",
                 "ID": row["C_PLAN_CODE"] if "C_PLAN_CODE" in row else "",
                 "Status": row["CURRENT_LINK"] if "CURRENT_LINK" in row else "" ,
