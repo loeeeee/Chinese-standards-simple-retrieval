@@ -162,5 +162,7 @@ cython_debug/
 # Personal
 result/*
 !result/.blank
-config.yaml
 playground*
+log/
+config*.yaml
+!config-example.yaml

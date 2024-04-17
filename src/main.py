@@ -3,8 +3,8 @@ import os
 import yaml
 import json
 import helper
-from logger import Logger
-from config import Config
+# from logger import Logger
+# from config import Config
 from datetime import date
 import time
 import random
@@ -14,6 +14,11 @@ from typing import Literal
 import requests
 import polars as pl
 
+from loe_simp_app_fw.config import Config
+from loe_simp_app_fw.logger import Logger
+
+Config("config.yaml", example_config_path="config-example.yaml", project_root_path=os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+Logger("log", project_root_path=os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 # Helper
 class FinishRetrieval(Exception):
@@ -24,6 +29,13 @@ class FinishRetrieval(Exception):
     """
     pass
 
+class BlockedHAHA(Exception):
+    """Flag for remote blocking the retrieval, lasting 10 minutes.
+    """
+    pass
+
+class UnknownError(Exception):
+    pass
 
 class UnknownRetrievalTarget(Exception):
     pass
@@ -84,9 +96,18 @@ def retrieve_response(parsed_search_words: str, page_number: int, standards_or_p
                 
     response_parsed = json.loads(response.text)
 
-    if len(response_parsed["rows"]) == 0: # 0 length return result means finish retrieval
-        Logger.info("No more response, finish retrieval.")
-        raise FinishRetrieval
+    try:
+        if len(response_parsed["rows"]) == 0: # 0 length return result means finish retrieval
+            Logger.info("No more response, finish retrieval.")
+            raise FinishRetrieval
+    except KeyError:
+        if response_parsed["code"]:
+            Logger.warning(f"Remote block the access, saying '{response_parsed['code']}-{response_parsed['message']}'")
+            raise BlockedHAHA
+        else:
+            Logger.warning("Unknown parsing error. Outputing raw result...")
+            Logger.warning(f"{response.text}")
+            raise UnknownError
 
     return response_parsed
 
@@ -158,7 +179,7 @@ def save_result(data: dict, search_keywords: str, standards_or_plans: Literal["s
     df = pl.DataFrame(data)
 
     # Saving results
-    SAVE_DIR = os.path.join(Config.config["package root path"], "result", f"{search_keywords.replace(' ', '_')}_{standards_or_plans}")
+    SAVE_DIR = os.path.join(Config.config["project root path"], "result", f"{search_keywords.replace(' ', '_')}_{standards_or_plans}")
     Logger.debug(f"Save to {SAVE_DIR}.")
 
     helper.create_folder_if_not_exists(SAVE_DIR)
@@ -169,7 +190,7 @@ def save_result(data: dict, search_keywords: str, standards_or_plans: Literal["s
 
 def main():
     # Prelude
-    RESULT_PATH = os.path.join(Config.config["package root path"], "result")
+    RESULT_PATH = os.path.join(Config.config["project root path"], "result")
     helper.create_folder_if_not_exists(RESULT_PATH)
 
     # Load JSON
@@ -188,10 +209,42 @@ def main():
             except FinishRetrieval:
                 break
 
-            except ConnectionError:
+            except (ConnectionError, UnknownError):
+                # Retry
+                RetryCounter.count()
+                if RetryCounter.shouldContinue():
+                    Logger.debug("Fail to retrieve once again.")
+                    page_number -= 1
+                    continue
+                else:
+                    Logger.error(f"Failed to retrieval at page number {page_number}, threshold exceeded.")
+                    RetryCounter.reset()
+                    continue
+            except BlockedHAHA:
+                # Sleep
+                typical_blocking_time_min = 10
+                Logger.warning(f"Start sleeping to wait for block lift. (Typically lasting 10 minutes.)")
+                for i in typical_blocking_time_min:
+                    time.sleep(60.001)
+                    Logger.info(f"Minute {i+1}.")
+
+                    # Test if still blocked
+                    try:
+                        _trial = retrieve_response(search_keywords_url_safe, page_number, standards_or_plans)
+                    except:
+                        Logger.debug("Retrieval still being blocked.")
+                        continue
+                    
+                    if _trial:
+                        # Wake up for further retrieval
+                        Logger.info("Retrieval no longer blocked.")
+                        break
+                
+                # Retry
                 RetryCounter.count()
                 if RetryCounter.shouldContinue():
                     page_number -= 1
+                    Logger.debug("Fail to retrieve once again.")
                     continue
                 else:
                     Logger.error(f"Failed to retrieval at page number {page_number}, threshold exceeded.")
@@ -218,7 +271,7 @@ def main():
                     save_result(data, "all", standards_or_plans)
             
             # Time to sleep
-            time_to_sleep = random.randrange(2, 8192) / 8192
+            time_to_sleep = random.randrange(1024, 16384) / 2048
             time.sleep(time_to_sleep) # Radom sleep to avoid detection
             Logger.debug(f"Sleep for {time_to_sleep}")
 
